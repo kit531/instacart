@@ -25,7 +25,7 @@ jobs:
           def esc(s): return s.replace('%','%25').replace('\r','%0D').replace('\n','%0A')
           log = [l[:300] for l in open('gametest.log', errors='replace').read().splitlines()]
           keys = re.compile(r'InstaCart|AssertionError|Exception in|Caused by: (?!java.lang.UnsatisfiedLink)|FAILED|\[ERROR\]|/ERROR\]|What went wrong|gametest|GameTest')
-          sel = [l for l in log if keys.search(l) and 'flite' not in l and 'Narrator' not in l][:150]
+          sel = [l for l in log if keys.search(l) and 'flite' not in l and 'Narrator' not in l and 'phase DRAWING' not in l][:150]
           print('::notice title=InstaCart summary::' + esc('\n'.join(sel)[:30000]))
           tail = [l for l in log if not l.lstrip().startswith('at ')][-70:]
           print('::notice title=log tail::' + esc('\n'.join(tail)[:30000]))

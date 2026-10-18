@@ -76,14 +76,16 @@ public class InstaCartClientGameTest implements FabricClientGameTest {
 				}
 				return n;
 			}));
+			boolean railGone = server.computeOnServer(s -> s.overworld().getBlockState(new net.minecraft.core.BlockPos(0, 100, 3)).isAir());
+			log("rail destroyed by explosion: " + railGone);
 			log("events: " + EVENTS);
 			context.takeScreenshot("instacart-after");
 
 			boolean arrow = EVENTS.stream().anyMatch(e -> e.startsWith("load minecraft:arrow"));
 			boolean cart = EVENTS.stream().anyMatch(e -> e.startsWith("load minecraft:tnt_minecart"));
 			boolean exploded = EVENTS.stream().anyMatch(e -> e.startsWith("unload minecraft:tnt_minecart"));
-			log("RESULT arrowShot=" + arrow + " cartPlaced=" + cart + " cartExploded=" + exploded);
-			if (!arrow || !cart || !exploded) {
+			log("RESULT arrowShot=" + arrow + " cartPlaced=" + cart + " cartExploded=" + exploded + " railDestroyed=" + railGone);
+			if (!arrow || !cart || !exploded || !railGone) {
 				throw new AssertionError("Insta Cart failed: arrowShot=" + arrow + " cartPlaced=" + cart + " cartExploded=" + exploded + " events=" + EVENTS);
 			}
 		}
