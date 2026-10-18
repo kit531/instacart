@@ -1,0 +1,23 @@
+{
+	"schemaVersion": 1,
+	"id": "instacart",
+	"version": "${version}",
+	"name": "Insta Cart",
+	"description": "One key: places a rail, a TNT minecart on it, and shoots it with a Flame bow.",
+	"authors": [
+		"Adam"
+	],
+	"license": "CC0-1.0",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"com.instacart.InstaCartClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
