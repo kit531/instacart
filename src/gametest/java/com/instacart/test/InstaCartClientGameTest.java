@@ -55,7 +55,7 @@ public class InstaCartClientGameTest implements FabricClientGameTest {
 			boolean hotbar = runScenario(context, server, "hotbar-near", "hotbar.0", "hotbar.1", "hotbar.2", 25, 3);
 			boolean inventory = runScenario(context, server, "inventory-near", "inventory.5", "inventory.6", "inventory.7", 25, 3);
 			boolean far = runScenario(context, server, "hotbar-far", "hotbar.0", "hotbar.1", "hotbar.2", 22, 4);
-			boolean steep = runScenario(context, server, "hotbar-steep", "hotbar.0", "hotbar.1", "hotbar.2", 45, 1);
+			boolean steep = runScenario(context, server, "hotbar-steep", "hotbar.0", "hotbar.1", "hotbar.2", 45, 2);
 			log("FINAL near=" + hotbar + " inventory=" + inventory + " far=" + far + " steep=" + steep);
 			if (!hotbar || !inventory || !far || !steep) {
 				throw new AssertionError("Insta Cart failed: near=" + hotbar + " inventory=" + inventory + " far=" + far + " steep=" + steep);

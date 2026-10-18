@@ -4,14 +4,14 @@ Client-side mod. One configurable key (default **R**, change it in *Options > Co
 
 1. Checks your **hotbar** for: a bow with **Flame**, any rail, a **TNT minecart** (plus arrows).
 2. Checks that the block you are aiming at is in reach and a rail fits there (or that you are already aiming at a rail).
-3. Places the rail, places the TNT minecart on it, aims at the cart, draws the bow and releases.
+3. Places the rail and the TNT minecart in the same tick, aims at the cart, barely draws the bow and releases.
    A flaming arrow detonates a TNT minecart instantly. Your previously selected slot is restored afterwards.
 
 Missing items / no room are reported in chat.
 
 Config: `config/instacart.properties` (created on first launch)
 
-- `draw_ticks` (3-20, default 20): bow draw time. 20 = full power; lower is faster but weaker.
+- `draw_ticks` (3-20, default 5): bow draw time. 5 = barely drawn (fastest, the aim compensates for arrow drop); 20 = full power (stronger blast).
 - `auto_aim` (default true): turn the camera to the cart while drawing.
 
 ## Build
