@@ -1,0 +1,12 @@
+{
+	"schemaVersion": 1,
+	"id": "instacart-test",
+	"version": "1.0.0",
+	"name": "Insta Cart test",
+	"environment": "*",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"com.instacart.test.InstaCartClientGameTest"
+		]
+	}
+}

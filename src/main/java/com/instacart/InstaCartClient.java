@@ -190,6 +190,7 @@ public class InstaCartClient implements ClientModInitializer {
 			placeRail = true;
 		}
 
+		LOGGER.info("[InstaCart] start: railPos={} placeRail={} slots(bow={}, rail={}, cart={}) drawTicks={}", railPos, placeRail, bowSlot, railSlot, cartSlot, this.drawTicks);
 		this.plan = new Plan(railPos, blockHit, placeRail, bowSlot, railSlot, cartSlot);
 		this.originalSlot = inv.getSelectedSlot();
 		this.drawCounter = 0;
@@ -202,6 +203,7 @@ public class InstaCartClient implements ClientModInitializer {
 	private void step(Minecraft mc, LocalPlayer player) {
 		Inventory inv = player.getInventory();
 		Plan p = this.plan;
+		LOGGER.info("[InstaCart] phase {} (using={}, slot={})", this.phase, player.isUsingItem(), inv.getSelectedSlot());
 
 		switch (this.phase) {
 			case PLACE_RAIL -> {
@@ -252,6 +254,7 @@ public class InstaCartClient implements ClientModInitializer {
 				mc.options.keyUse.setDown(true);
 				this.drawCounter++;
 				if (this.drawCounter >= this.drawTicks) {
+					LOGGER.info("[InstaCart] releasing bow after {} ticks (ticksUsingItem={})", this.drawCounter, player.getTicksUsingItem());
 					mc.gameMode.releaseUsingItem(player);
 					mc.options.keyUse.setDown(false);
 					this.holdingUseKey = false;
@@ -318,6 +321,7 @@ public class InstaCartClient implements ClientModInitializer {
 	}
 
 	private static void say(LocalPlayer player, String message) {
+		LOGGER.info("[InstaCart] {}", message);
 		player.sendSystemMessage(Component.literal("[Insta Cart] " + message));
 	}
 

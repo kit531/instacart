@@ -44,3 +44,14 @@ jar {
 		rename { "${it}_$projectName"}
 	}
 }
+
+// Client game test (real client + integrated server), run in CI: ./gradlew runClientGameTest
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "instacart-test"
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true // by enabling this you agree to the Minecraft EULA: https://aka.ms/MinecraftEULA
+	}
+}
