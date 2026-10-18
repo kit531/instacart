@@ -34,6 +34,9 @@ public class InstaCartClientGameTest implements FabricClientGameTest {
 			String id = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString();
 			if (id.equals("minecraft:arrow") || id.equals("minecraft:tnt_minecart")) {
 				EVENTS.add("load " + id);
+				if (id.equals("minecraft:arrow")) {
+					log("arrow speed " + entity.getDeltaMovement().length() + " blocks/tick, y=" + entity.getY());
+				}
 			}
 		});
 		ServerEntityEvents.ENTITY_UNLOAD.register((entity, level) -> {
@@ -49,20 +52,22 @@ public class InstaCartClientGameTest implements FabricClientGameTest {
 			server.runCommand("gamemode survival @a");
 			server.runCommand("effect give @a minecraft:resistance 1000 4 true");
 
-			boolean hotbar = runScenario(context, server, "hotbar", "hotbar.0", "hotbar.1", "hotbar.2");
-			boolean inventory = runScenario(context, server, "inventory", "inventory.5", "inventory.6", "inventory.7");
-			log("FINAL hotbarScenario=" + hotbar + " inventoryScenario=" + inventory);
-			if (!hotbar || !inventory) {
-				throw new AssertionError("Insta Cart failed: hotbarScenario=" + hotbar + " inventoryScenario=" + inventory);
+			boolean hotbar = runScenario(context, server, "hotbar-near", "hotbar.0", "hotbar.1", "hotbar.2", 25, 3);
+			boolean inventory = runScenario(context, server, "inventory-near", "inventory.5", "inventory.6", "inventory.7", 25, 3);
+			boolean far = runScenario(context, server, "hotbar-far", "hotbar.0", "hotbar.1", "hotbar.2", 22, 4);
+			boolean steep = runScenario(context, server, "hotbar-steep", "hotbar.0", "hotbar.1", "hotbar.2", 45, 1);
+			log("FINAL near=" + hotbar + " inventory=" + inventory + " far=" + far + " steep=" + steep);
+			if (!hotbar || !inventory || !far || !steep) {
+				throw new AssertionError("Insta Cart failed: near=" + hotbar + " inventory=" + inventory + " far=" + far + " steep=" + steep);
 			}
 		}
 	}
 
-	private static boolean runScenario(ClientGameTestContext context, TestServerContext server, String name, String bowSlot, String railSlot, String cartSlot) {
+	private static boolean runScenario(ClientGameTestContext context, TestServerContext server, String name, String bowSlot, String railSlot, String cartSlot, int pitch, int railZ) {
 		server.runCommand("kill @e[type=!player]");
 		server.runCommand("fill -6 99 -6 6 99 6 minecraft:stone");
 		server.runCommand("fill -6 100 -6 6 108 6 minecraft:air");
-		server.runCommand("tp @a 0.5 100 0.5 0 25");
+		server.runCommand("tp @a 0.5 100 0.5 0 " + pitch);
 		server.runCommand("clear @a");
 		server.runCommand("item replace entity @a " + bowSlot + " with minecraft:bow[enchantments={\"minecraft:flame\":1}]");
 		server.runCommand("item replace entity @a " + railSlot + " with minecraft:rail 4");
@@ -77,7 +82,7 @@ public class InstaCartClientGameTest implements FabricClientGameTest {
 		boolean arrow = EVENTS.stream().anyMatch(e -> e.equals("load minecraft:arrow"));
 		boolean cart = EVENTS.stream().anyMatch(e -> e.equals("load minecraft:tnt_minecart"));
 		boolean cartGone = EVENTS.stream().anyMatch(e -> e.equals("unload minecraft:tnt_minecart"));
-		boolean railGone = server.computeOnServer(s -> s.overworld().getBlockState(new BlockPos(0, 100, 3)).isAir());
+		boolean railGone = server.computeOnServer(s -> s.overworld().getBlockState(new BlockPos(0, 100, railZ)).isAir());
 		int selected = server.computeOnServer(s -> s.getPlayerList().getPlayers().get(0).getInventory().getSelectedSlot());
 		int arrows = server.computeOnServer(s -> {
 			var inv = s.getPlayerList().getPlayers().get(0).getInventory();

@@ -64,7 +64,7 @@ public class InstaCartClient implements ClientModInitializer {
 	private record Plan(BlockPos railPos, BlockHitResult railHit, boolean placeRail, int bowSlot, int railSlot, int cartSlot) {}
 
 	// Config (config/instacart.properties)
-	private int drawTicks = 20;
+	private int drawTicks = 5;
 	private boolean autoAim = true;
 
 	private KeyMapping triggerKey;
@@ -212,7 +212,10 @@ public class InstaCartClient implements ClientModInitializer {
 		this.originalSlot = inv.getSelectedSlot();
 		this.drawCounter = 0;
 		this.phase = placeRail ? Phase.PLACE_RAIL : Phase.PLACE_CART;
-		this.step(mc, player);
+		// Rail, cart and bow draw all happen in this very tick (packets are processed by the server in order).
+		while (this.phase == Phase.PLACE_RAIL || this.phase == Phase.PLACE_CART || this.phase == Phase.START_DRAW) {
+			this.step(mc, player);
+		}
 	}
 
 	// ---------------------------------------------------------------- sequence
@@ -288,20 +291,59 @@ public class InstaCartClient implements ClientModInitializer {
 		}
 	}
 
-	/** Look at the middle of the minecart so the arrow flies straight into it. */
+	/** Bow power after the given number of ticks of drawing (same formula as vanilla), 0..1. */
+	private static double bowPower(int ticks) {
+		double f = ticks / 20.0;
+		return Math.min((f * f + f * 2.0) / 3.0, 1.0);
+	}
+
+	/**
+	 * Aim at the minecart. A barely drawn bow shoots slowly, so the arrow drops on the way:
+	 * raise the aim until the simulated flight (0.99 drag and 0.05 gravity per tick, like vanilla arrows)
+	 * reaches the height of the cart at its distance.
+	 */
 	private void aim(LocalPlayer player) {
 		if (!this.autoAim) {
 			return;
 		}
 		BlockPos pos = this.plan.railPos();
-		Vec3 target = new Vec3(pos.getX() + 0.5, pos.getY() + 0.4, pos.getZ() + 0.5);
-		Vec3 eye = player.getEyePosition();
-		double dx = target.x - eye.x;
-		double dy = target.y - eye.y;
-		double dz = target.z - eye.z;
+		Vec3 target = new Vec3(pos.getX() + 0.5, pos.getY() + 0.35, pos.getZ() + 0.5);
+		Vec3 start = player.getEyePosition().subtract(0.0, 0.1, 0.0); // arrows spawn slightly below the eyes
+		double dx = target.x - start.x;
+		double dy = target.y - start.y;
+		double dz = target.z - start.z;
 		double horizontal = Math.sqrt(dx * dx + dz * dz);
+		double pitchUp = Math.toDegrees(Math.atan2(dy, horizontal));
+		double speed = bowPower(this.drawTicks) * 3.0;
+
+		for (double extra = 0.0; extra <= 60.0; extra += 0.1) {
+			double angle = Math.toRadians(pitchUp + extra);
+			double vx = Math.cos(angle) * speed;
+			double vy = Math.sin(angle) * speed;
+			double x = 0.0;
+			double y = 0.0;
+			boolean reaches = false;
+			for (int tick = 0; tick < 100 && vx > 0.0; tick++) {
+				double nx = x + vx;
+				double ny = y + vy;
+				if (nx >= horizontal) {
+					double along = (horizontal - x) / (nx - x);
+					reaches = y + (ny - y) * along >= dy;
+					break;
+				}
+				x = nx;
+				y = ny;
+				vx *= 0.99;
+				vy = vy * 0.99 - 0.05;
+			}
+			if (reaches) {
+				pitchUp += extra;
+				break;
+			}
+		}
+
 		player.setYRot((float) (Mth.atan2(dz, dx) * (180.0 / Math.PI)) - 90.0F);
-		player.setXRot((float) -(Mth.atan2(dy, horizontal) * (180.0 / Math.PI)));
+		player.setXRot((float) -pitchUp);
 	}
 
 	private void abort(Minecraft mc, String message) {
@@ -373,6 +415,8 @@ public class InstaCartClient implements ClientModInitializer {
 
 	// ---------------------------------------------------------------- config
 
+	private static final String CONFIG_VERSION = "2";
+
 	private void loadConfig() {
 		Path file = FabricLoader.getInstance().getConfigDir().resolve("instacart.properties");
 		Properties props = new Properties();
@@ -383,23 +427,28 @@ public class InstaCartClient implements ClientModInitializer {
 			} catch (IOException e) {
 				LOGGER.warn("Could not read {}", file, e);
 			}
-		} else {
-			props.setProperty("draw_ticks", "20");
+		}
+
+		// Missing or from an older version of the mod (whose defaults were different): write the current defaults.
+		if (!CONFIG_VERSION.equals(props.getProperty("config_version"))) {
+			props = new Properties();
+			props.setProperty("config_version", CONFIG_VERSION);
+			props.setProperty("draw_ticks", "5");
 			props.setProperty("auto_aim", "true");
 			try (OutputStream out = Files.newOutputStream(file)) {
 				props.store(out, """
 						Insta Cart
-						draw_ticks: how many ticks the bow is drawn before release (3-20). 20 = full power. Lower = faster but weaker arrow.
-						auto_aim: turn the camera towards the minecart while drawing (true/false).""");
+						draw_ticks: how many ticks the bow is drawn before release (3-20). 5 = barely drawn, fastest. 20 = full power (stronger blast).
+						auto_aim: turn the camera towards the minecart (with drop compensation) while drawing (true/false).""");
 			} catch (IOException e) {
 				LOGGER.warn("Could not write {}", file, e);
 			}
 		}
 
 		try {
-			this.drawTicks = Mth.clamp(Integer.parseInt(props.getProperty("draw_ticks", "20").trim()), 3, 20);
+			this.drawTicks = Mth.clamp(Integer.parseInt(props.getProperty("draw_ticks", "5").trim()), 3, 20);
 		} catch (NumberFormatException e) {
-			this.drawTicks = 20;
+			this.drawTicks = 5;
 		}
 		this.autoAim = Boolean.parseBoolean(props.getProperty("auto_aim", "true").trim());
 	}
