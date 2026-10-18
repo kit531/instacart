@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
+import java.util.function.Predicate;
 
 import com.mojang.blaze3d.platform.InputConstants;
 
@@ -26,6 +27,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.BowItem;
 import net.minecraft.world.item.ItemStack;
@@ -123,25 +125,13 @@ public class InstaCartClient implements ClientModInitializer {
 
 		Inventory inv = player.getInventory();
 
-		int bowSlot = -1;
-		int railSlot = -1;
-		int cartSlot = -1;
-		for (int i = 0; i < 9; i++) {
-			ItemStack stack = inv.getItem(i);
-			if (stack.isEmpty()) {
-				continue;
-			}
-			if (bowSlot < 0 && stack.getItem() instanceof BowItem && hasFlame(stack)) {
-				bowSlot = i;
-			} else if (railSlot < 0 && stack.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof BaseRailBlock) {
-				railSlot = i;
-			} else if (cartSlot < 0 && stack.is(Items.TNT_MINECART)) {
-				cartSlot = i;
-			}
-		}
+		// Search the whole inventory (0-8 hotbar, 9-35 main); items found outside the hotbar are swapped in below.
+		int bowSlot = findSlot(inv, stack -> stack.getItem() instanceof BowItem && hasFlame(stack));
+		int railSlot = findSlot(inv, stack -> stack.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof BaseRailBlock);
+		int cartSlot = findSlot(inv, stack -> stack.is(Items.TNT_MINECART));
 
 		if (bowSlot < 0) {
-			say(player, "You need a bow with Flame in your hotbar.");
+			say(player, "You need a bow with Flame in your inventory.");
 			return;
 		}
 		if (player.getProjectile(inv.getItem(bowSlot)).isEmpty()) {
@@ -149,7 +139,7 @@ public class InstaCartClient implements ClientModInitializer {
 			return;
 		}
 		if (cartSlot < 0) {
-			say(player, "You need a TNT minecart in your hotbar.");
+			say(player, "You need a TNT minecart in your inventory.");
 			return;
 		}
 
@@ -171,7 +161,7 @@ public class InstaCartClient implements ClientModInitializer {
 			placeRail = false;
 		} else {
 			if (railSlot < 0) {
-				say(player, "You need a rail in your hotbar.");
+				say(player, "You need a rail in your inventory.");
 				return;
 			}
 			ItemStack railStack = inv.getItem(railSlot);
@@ -189,6 +179,33 @@ public class InstaCartClient implements ClientModInitializer {
 			}
 			placeRail = true;
 		}
+
+		// Bring everything we need into the hotbar (a swap puts the displaced hotbar item where the item came from).
+		int[] slots = { bowSlot, placeRail ? railSlot : -1, cartSlot };
+		boolean[] reserved = new boolean[9];
+		for (int slot : slots) {
+			if (slot >= 0 && slot < 9) {
+				reserved[slot] = true;
+			}
+		}
+		for (int i = 0; i < slots.length; i++) {
+			if (slots[i] < 9) {
+				continue;
+			}
+			int target = freeHotbarSlot(inv, reserved);
+			if (target < 0) {
+				say(player, "No free hotbar slot to bring your items into.");
+				return;
+			}
+			LOGGER.info("[InstaCart] moving inventory slot {} to hotbar slot {}", slots[i], target);
+			// InventoryMenu: main inventory slots 9-35 have the same index as in Inventory.
+			mc.gameMode.handleInventoryMouseClick(player.inventoryMenu.containerId, slots[i], target, ContainerInput.SWAP, player);
+			slots[i] = target;
+			reserved[target] = true;
+		}
+		bowSlot = slots[0];
+		railSlot = slots[1];
+		cartSlot = slots[2];
 
 		LOGGER.info("[InstaCart] start: railPos={} placeRail={} slots(bow={}, rail={}, cart={}) drawTicks={}", railPos, placeRail, bowSlot, railSlot, cartSlot, this.drawTicks);
 		this.plan = new Plan(railPos, blockHit, placeRail, bowSlot, railSlot, cartSlot);
@@ -309,6 +326,35 @@ public class InstaCartClient implements ClientModInitializer {
 	}
 
 	// ---------------------------------------------------------------- helpers
+
+	/** First slot (hotbar first, then main inventory) whose stack matches, or -1. */
+	private static int findSlot(Inventory inv, Predicate<ItemStack> test) {
+		for (int i = 0; i < 36; i++) {
+			ItemStack stack = inv.getItem(i);
+			if (!stack.isEmpty() && test.test(stack)) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	/** An unreserved hotbar slot: empty ones first, starting from the selected slot; otherwise any unreserved one. */
+	private static int freeHotbarSlot(Inventory inv, boolean[] reserved) {
+		int selected = inv.getSelectedSlot();
+		for (int k = 0; k < 9; k++) {
+			int i = (selected + k) % 9;
+			if (!reserved[i] && inv.getItem(i).isEmpty()) {
+				return i;
+			}
+		}
+		for (int k = 0; k < 9; k++) {
+			int i = (selected + k) % 9;
+			if (!reserved[i]) {
+				return i;
+			}
+		}
+		return -1;
+	}
 
 	private static boolean hasFlame(ItemStack stack) {
 		ItemEnchantments enchantments = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
