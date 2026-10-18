@@ -199,7 +199,7 @@ public class InstaCartClient implements ClientModInitializer {
 			}
 			LOGGER.info("[InstaCart] moving inventory slot {} to hotbar slot {}", slots[i], target);
 			// InventoryMenu: main inventory slots 9-35 have the same index as in Inventory.
-			mc.gameMode.handleInventoryMouseClick(player.inventoryMenu.containerId, slots[i], target, ContainerInput.SWAP, player);
+			mc.gameMode.handleContainerInput(player.inventoryMenu.containerId, slots[i], target, ContainerInput.SWAP, player);
 			slots[i] = target;
 			reserved[target] = true;
 		}
