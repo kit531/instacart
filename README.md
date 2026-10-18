@@ -20,7 +20,7 @@ Requires JDK 25.
 
     ./gradlew build
 
-The jar is in `build/libs/instacart-1.0.0.jar`. Put it in `mods/` together with Fabric API 0.161.0+26.2 and Fabric Loader 0.19.5 or newer.
+The jar is in `build/libs/instacart-1.0.0.jar`. Put it in `mods/` together with Fabric API 0.161.0+26.2 and Fabric Loader 0.19.3 or newer.
 Pushing to GitHub also builds it via `.github/workflows/build.yml` (download from the Actions artifacts).
 
 Note: the explosion is big. Keep your distance, and check that the server you play on allows automation like this.
