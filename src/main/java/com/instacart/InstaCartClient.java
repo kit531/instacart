@@ -52,7 +52,7 @@ import net.fabricmc.loader.api.FabricLoader;
  * then draws a Flame bow at the cart. A flaming arrow detonates a TNT minecart instantly.
  *
  * Everything runs client side as a small tick state machine, using only normal player actions
- * (hotbar select, use item on block, use item, release item).
+ * (hotbar select, use item, release item, use item on block).
  */
 public class InstaCartClient implements ClientModInitializer {
 	public static final String MOD_ID = "instacart";
@@ -211,11 +211,9 @@ public class InstaCartClient implements ClientModInitializer {
 		this.plan = new Plan(railPos, blockHit, placeRail, bowSlot, railSlot, cartSlot);
 		this.originalSlot = inv.getSelectedSlot();
 		this.drawCounter = 0;
-		this.phase = placeRail ? Phase.PLACE_RAIL : Phase.PLACE_CART;
-		// Rail, cart and bow draw all happen in this very tick (packets are processed by the server in order).
-		while (this.phase == Phase.PLACE_RAIL || this.phase == Phase.PLACE_CART || this.phase == Phase.START_DRAW) {
-			this.step(mc, player);
-		}
+		// The arrow goes first: draw the bow now, release it after drawTicks, and only then place rail + cart.
+		this.phase = Phase.START_DRAW;
+		this.step(mc, player);
 	}
 
 	// ---------------------------------------------------------------- sequence
@@ -249,7 +247,7 @@ public class InstaCartClient implements ClientModInitializer {
 					return;
 				}
 				player.swing(InteractionHand.MAIN_HAND);
-				this.phase = Phase.START_DRAW;
+				this.phase = Phase.RESTORE;
 			}
 			case START_DRAW -> {
 				inv.setSelectedSlot(p.bowSlot());
@@ -278,7 +276,12 @@ public class InstaCartClient implements ClientModInitializer {
 					mc.gameMode.releaseUsingItem(player);
 					mc.options.keyUse.setDown(false);
 					this.holdingUseKey = false;
-					this.phase = Phase.RESTORE;
+					// The arrow is on its way: put the rail and the cart down right now, in this same tick.
+					// The server handles the packets in order, so both exist before the arrow's first move.
+					this.phase = p.placeRail() ? Phase.PLACE_RAIL : Phase.PLACE_CART;
+					while (this.phase == Phase.PLACE_RAIL || this.phase == Phase.PLACE_CART) {
+						this.step(mc, player);
+					}
 				}
 			}
 			case RESTORE -> {

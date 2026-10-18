@@ -94,9 +94,12 @@ public class InstaCartClientGameTest implements FabricClientGameTest {
 			}
 			return n;
 		});
-		boolean ok = arrow && cart && cartGone && railGone;
+		// "Arrow first": the arrow must have been shot before the minecart was placed.
+		boolean arrowFirst = EVENTS.indexOf("load minecraft:arrow") >= 0
+				&& EVENTS.indexOf("load minecraft:arrow") < EVENTS.indexOf("load minecraft:tnt_minecart");
+		boolean ok = arrow && cart && cartGone && railGone && arrowFirst;
 		log("SCENARIO " + name + ": arrowShot=" + arrow + " cartPlaced=" + cart + " cartGone=" + cartGone
-				+ " railDestroyed=" + railGone + " selectedSlotAfter=" + selected + " arrowsLeft=" + arrows + " => " + (ok ? "PASS" : "FAIL"));
+				+ " railDestroyed=" + railGone + " arrowFirst=" + arrowFirst + " events=" + EVENTS + " selectedSlotAfter=" + selected + " arrowsLeft=" + arrows + " => " + (ok ? "PASS" : "FAIL"));
 		context.takeScreenshot("instacart-" + name);
 		return ok;
 	}

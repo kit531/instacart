@@ -4,7 +4,7 @@ Client-side mod. One configurable key (default **R**, change it in *Options > Co
 
 1. Checks your **hotbar** for: a bow with **Flame**, any rail, a **TNT minecart** (plus arrows).
 2. Checks that the block you are aiming at is in reach and a rail fits there (or that you are already aiming at a rail).
-3. Places the rail and the TNT minecart in the same tick, aims at the cart, barely draws the bow and releases.
+3. Aims at the target and barely draws the bow, shoots the flaming arrow first, then immediately places the rail and the TNT minecart (same tick). The arrow detonates the cart on arrival.
    A flaming arrow detonates a TNT minecart instantly. Your previously selected slot is restored afterwards.
 
 Missing items / no room are reported in chat.
