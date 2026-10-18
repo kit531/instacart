@@ -54,7 +54,7 @@ public class InstaCartClientGameTest implements FabricClientGameTest {
 			server.runCommand("clear @a");
 			server.runCommand("item replace entity @a hotbar.0 with minecraft:bow[enchantments={\"minecraft:flame\":1}]");
 			server.runCommand("item replace entity @a hotbar.1 with minecraft:rail 4");
-			server.runCommand("item replace entity @a hotbar.2 with minecraft:tnt_minecart 2");
+			server.runCommand("item replace entity @a hotbar.2 with minecraft:tnt_minecart");
 			server.runCommand("item replace entity @a inventory.0 with minecraft:arrow 16");
 			server.runCommand("kill @e[type=!player]");
 			context.waitTicks(20);
